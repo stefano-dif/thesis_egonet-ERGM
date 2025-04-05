@@ -13,6 +13,8 @@ renv::restore()
 
 ## Script Descriptions
 
+(Missing scripts will be loaded soon)
+
 ```data_preparation.R```: This script performs preprocessing steps on the data (e.g., smoothing degree distributions) and creates the _egor_ objects that are going to be used in the following scripts.
 
 ```[to add].R```: This script provides an exploratory analysis of the egocentric data.
