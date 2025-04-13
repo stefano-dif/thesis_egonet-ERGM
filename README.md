@@ -25,7 +25,7 @@ renv::restore()
 
 ```metrics_evaluation.qmd```: This script evaluates the global metrics of the previously reconstructed networks against the benchmark reconstructions (ER and AB).
 
-```[to add].R```: This script simulates the dynamics of two spreading processes: (1) the SEIR epidemic model and (2) the Friedkin–Johnsen opinion dynamics model. These processes are simulated on the reconstructed networks to study the effects of network structure on dynamic behaviors and compared against the dynamics on benchmark reconstructions (ER and AB).
+```dynamics_SEIR.R``` and ``dynamics_FJ.R``` simulate the dynamics of two spreading processes: (1) the SEIR epidemic model and (2) the Friedkin–Johnsen opinion dynamics model, respectively. These processes are simulated on the reconstructed networks to study the effects of network structure on dynamic behaviors, comparing the dynamics on the ERGM-based net against those running on benchmark reconstructions (ER and AB). [still to add]
 
 
 
