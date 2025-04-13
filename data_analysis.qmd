@@ -1,0 +1,436 @@
+---
+title: "analysis"
+format: html
+editor: visual
+---
+
+```{r}
+#source("data_finalization.R")
+
+library(ggplot2)
+library(patchwork)
+library(Rglpk)
+library(igraph)
+library(philentropy)
+library(tidyr)
+```
+
+```{r}
+par(mar = c(0, 0, 0, 0), mfrow = c(2, 2))
+purrr::walk(as_igraph(egor_IT_cow, include.ego = TRUE)[1:4], vertex.label.cex = 0.5, plot)
+purrr::walk(as_igraph(egor_IT_fr, include.ego = TRUE)[1:4], vertex.label.cex = 0.5, plot)
+```
+
+```{r}
+plot_color_age <- function(nets){ 
+   cols <- vertex_attr(nets, "age_group") 
+   cols <- ifelse(cols == "60+", ifelse(cols == "30-59", "lightgreen", "lightyellow"), "lightblue")
+   plot(nets, vertex.color = cols, vertex.label.cex = 0.5) 
+}
+
+purrr::walk(as_igraph(egor_IT_fr, include.ego = TRUE)[10:13], plot_color_age)
+
+plot(egor_IT_cow, venn_var = "age_group", type = "egogram")
+```
+
+```{r}
+as_tibble(summary(egor_IT_cow  ~ degree(0:27))) %>% 
+  mutate(degree = 0:27, country = "IT", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t1
+as_tibble(summary(egor_DE_cow  ~ degree(0:27))) %>% 
+  mutate(degree = 0:27, country = "DE", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t2
+as_tibble(summary(egor_FR_cow  ~ degree(0:27))) %>% 
+  mutate(degree = 0:27, country = "FR", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t3
+as_tibble(summary(egor_UK_cow  ~ degree(0:27))) %>% 
+  mutate(degree = 0:27, country = "UK", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t4
+
+t <- rbind(t1, t2, t3, t4)
+
+t %>% 
+  ggplot()+
+  geom_col(mapping = aes(x = degree, y = freq/sum(freq), fill = country), width = 0.8)+
+  xlab("Degree") + ylab("Relative frequency")
+```
+
+```{r}
+as_tibble(summary(egor_IT_fr  ~ degree(0:27))) %>% 
+  mutate(degree = 0:27, country = "IT", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t1
+as_tibble(summary(egor_DE_fr  ~ degree(0:27))) %>% 
+  mutate(degree = 0:27, country = "DE", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t2
+as_tibble(summary(egor_FR_fr  ~ degree(0:27))) %>% 
+  mutate(degree = 0:27, country = "FR", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t3
+as_tibble(summary(egor_UK_fr  ~ degree(0:27))) %>% 
+  mutate(degree = 0:27, country = "UK", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t4
+
+t <- rbind(t1, t2, t3, t4)
+
+t %>% 
+  ggplot()+
+  geom_col(mapping = aes(x = degree, y = freq/sum(freq), fill = country), width = 0.8)+
+  xlab("Degree") + ylab("Relative frequency")
+```
+
+```{r}
+degreedist(egor_IT_fr, by = "age_group", freq = T) %>% 
+  as_tibble() %>% 
+  mutate(degree = as.numeric(degree), age = age_group) %>% 
+  ggplot()+
+  geom_col(mapping = aes(x = degree, y = n, fill = age), position = "stack", width = 0.8)+
+  xlab("Degree") + ylab("Relative frequency")
+
+```
+
+```{r}
+degreedist(egor_IT_fr, by = "sex") %>% 
+  as_tibble() %>% 
+  mutate(degree = as.numeric(degree), sex = sex) %>% 
+  ggplot()+
+  geom_col(mapping = aes(x = degree, y = n, fill = sex), position = "fill", width = 0.8)+
+  xlab("Degree") + ylab("Relative frequency")
+```
+
+```{r}
+degreedist(egor_IT_fr, by = "age_group", freq = T) %>% 
+  as_tibble() %>% 
+  mutate(degree = as.numeric(degree), age = age_group)
+```
+
+```{r}
+degreedist(egor_IT_cow, by = "age_group", freq = T) %>% 
+  as_tibble() %>% 
+  mutate(degree = as.numeric(degree), age = age_group) %>% 
+  uncount(weights = n) %>% 
+  ggplot()+
+  geom_boxplot(mapping = aes(x = age, y = degree, fill = age))+
+  xlab("Age") + ylab("Degree")
+```
+
+```{r}
+degreedist(egor_IT_cow, by = "sex", freq = T) %>% 
+  as_tibble() %>% 
+  mutate(degree = as.numeric(degree)) %>% 
+  uncount(weights = n) %>% 
+  ggplot()+
+  geom_boxplot(mapping = aes(x = sex, y = degree, fill = sex))+
+  xlab("Sex") + ylab("Degree")
+```
+
+```{r}
+degreedist(egor_IT_fr, by = "age_group", freq = T) %>% 
+  as_tibble() %>% 
+  mutate(degree = as.numeric(degree), age = age_group) %>% 
+  uncount(weights = n) %>% 
+  ggplot()+
+  geom_boxplot(mapping = aes(x = age, y = degree, fill = age))+
+  xlab("Age") + ylab("Degree")
+```
+
+```{r}
+degreedist(egor_IT_fr, by = "sex", freq = T) %>% 
+  as_tibble() %>% 
+  mutate(degree = as.numeric(degree)) %>% 
+  uncount(weights = n) %>% 
+  ggplot()+
+  geom_boxplot(mapping = aes(x = sex, y = degree, fill = sex))+
+  xlab("Sex") + ylab("Degree")
+```
+
+```{r}
+degreedist(egor_IT_fr, by = "M_income", freq = T) %>% 
+  as_tibble() %>% 
+  mutate(degree = as.numeric(degree), Income = M_income) %>% 
+  uncount(weights = n) %>% 
+  ggplot()+
+  geom_boxplot(mapping = aes(x = Income, y = degree, fill = Income))+
+  xlab("Income") + ylab("Degree")+
+  coord_flip()
+```
+
+```{r}
+degreedist(egor_IT_cow, by = "M_income", freq = T) %>% 
+  as_tibble() %>% 
+  mutate(degree = as.numeric(degree), Income = M_income) %>% 
+  uncount(weights = n) %>% 
+  ggplot()+
+  geom_boxplot(mapping = aes(x = Income, y = degree, fill = Income))+
+  xlab("Income") + ylab("Degree")+
+  coord_flip()
+```
+
+```{r}
+degreedist(egor_IT_cow, by = "M_education", freq = T) %>% 
+  as_tibble() %>% 
+  mutate(degree = as.numeric(degree), Education = M_education) %>% 
+  uncount(weights = n) %>% 
+  ggplot()+
+  geom_boxplot(mapping = aes(x = Education, y = degree, fill = Education))+
+  xlab("Education") + ylab("Degree")+
+  coord_flip()
+```
+
+```{r}
+degreedist(egor_IT_fr, by = "M_education", freq = T) %>% 
+  as_tibble() %>% 
+  mutate(degree = as.numeric(degree), Education = M_education) %>% 
+  uncount(weights = n) %>% 
+  ggplot()+
+  geom_boxplot(mapping = aes(x = Education, y = degree, fill = Education))+
+  xlab("Education") + ylab("Degree")+
+  coord_flip()
+```
+
+```{r}
+ei_IT_cow <- comp_ei(egor_IT_cow, "age_group", "age_group")
+ei_IT_fr <- comp_ei(egor_IT_fr, "age_group", "age_group")
+```
+
+```{r}
+ei_IT_cow %>% 
+  inner_join(egor_IT_cow$ego, by = ".egoID") %>%
+  filter(age_group == "18-29") %>% 
+  ggplot()+
+  geom_histogram(mapping = aes(x = ei, fill = sex), position = "dodge", bins = 15)+
+  xlab("E-I index") + ylab("Frequency")+theme(legend.position = "none")+
+  ggtitle("Coworkers, age: 18-29") -> t1
+
+ei_IT_cow %>% 
+  inner_join(egor_IT_cow$ego, by = ".egoID") %>% 
+  filter(age_group == "30-59") %>% 
+  ggplot()+
+  geom_histogram(mapping = aes(x = ei, fill = sex), position = "dodge", bins = 15)+
+  xlab("E-I index") + ylab("Frequency")+theme(legend.position = "none")+
+  ggtitle("Coworkers, age: 30-59") -> t2
+
+ei_IT_cow %>% 
+  inner_join(egor_IT_cow$ego, by = ".egoID") %>% 
+  filter(age_group == "60+") %>% 
+  ggplot()+
+  geom_histogram(mapping = aes(x = ei, fill = sex), position = "dodge", bins = 15)+
+  xlab("E-I index") + ylab("Frequency")+theme(legend.position = "none")+
+  ggtitle("Coworkers, age: 60+") -> t3
+
+
+ei_IT_fr %>% 
+  inner_join(egor_IT_fr$ego, by = ".egoID") %>% 
+  filter(age_group == "18-29") %>% 
+  ggplot()+
+  geom_histogram(mapping = aes(x = ei, fill = sex), position = "dodge", bins = 15)+
+  xlab("E-I index") + ylab("Frequency")+
+  ggtitle("Friends, age: 18-29") -> t4
+
+ei_IT_fr %>% 
+  inner_join(egor_IT_fr$ego, by = ".egoID") %>% 
+  filter(age_group == "30-59") %>% 
+  ggplot()+
+  geom_histogram(mapping = aes(x = ei, fill = sex), position = "dodge", bins = 15)+
+  xlab("E-I index") + ylab("Frequency")+theme(legend.position = "none")+
+  ggtitle("Friends, age: 30-59") -> t5
+
+ei_IT_fr %>% 
+  inner_join(egor_IT_fr$ego, by = ".egoID") %>% 
+  filter(age_group == "60+") %>% 
+  ggplot()+
+  geom_histogram(mapping = aes(x = ei, fill = sex), position = "dodge", bins = 15)+
+  xlab("E-I index") + ylab("Frequency")+theme(legend.position = "none")+
+  ggtitle("Friends, age: 60+") -> t6
+
+(t1 + t4)/(t2 + t5)/(t3 + t6)
+```
+
+```{r}
+ei_IT_cow %>% 
+  inner_join(egor_IT_cow$ego, by = ".egoID") %>%
+  filter(age_group == "18-29") %>% 
+  ggplot()+
+  geom_histogram(mapping = aes(x = ei, fill = M_education), position = "dodge", bins = 15)+
+  xlab("E-I index") + ylab("Frequency")+theme(legend.position = "none")+
+  ggtitle("Coworkers, age: 18-29") -> t1
+
+ei_IT_cow %>% 
+  inner_join(egor_IT_cow$ego, by = ".egoID") %>% 
+  filter(age_group == "30-59") %>% 
+  ggplot()+
+  geom_histogram(mapping = aes(x = ei, fill = M_education), position = "dodge", bins = 15)+
+  xlab("E-I index") + ylab("Frequency")+theme(legend.position = "none")+
+  ggtitle("Coworkers, age: 30-59") -> t2
+
+ei_IT_cow %>% 
+  inner_join(egor_IT_cow$ego, by = ".egoID") %>% 
+  filter(age_group == "60+") %>% 
+  ggplot()+
+  geom_histogram(mapping = aes(x = ei, fill = M_education), position = "dodge", bins = 15)+
+  xlab("E-I index") + ylab("Frequency")+theme(legend.position = "none")+
+  ggtitle("Coworkers, age: 60+") -> t3
+
+
+ei_IT_fr %>% 
+  inner_join(egor_IT_fr$ego, by = ".egoID") %>% 
+  filter(age_group == "18-29") %>% 
+  ggplot()+
+  geom_histogram(mapping = aes(x = ei, fill = M_education), position = "dodge", bins = 15)+
+  xlab("E-I index") + ylab("Frequency")+
+  ggtitle("Friends, age: 18-29") -> t4
+
+ei_IT_fr %>% 
+  inner_join(egor_IT_fr$ego, by = ".egoID") %>% 
+  filter(age_group == "30-59") %>% 
+  ggplot()+
+  geom_histogram(mapping = aes(x = ei, fill = M_education), position = "dodge", bins = 15)+
+  xlab("E-I index") + ylab("Frequency")+theme(legend.position = "none")+
+  ggtitle("Friends, age: 30-59") -> t5
+
+ei_IT_fr %>% 
+  inner_join(egor_IT_fr$ego, by = ".egoID") %>% 
+  filter(age_group == "60+") %>% 
+  ggplot()+
+  geom_histogram(mapping = aes(x = ei, fill = M_education), position = "dodge", bins = 15)+
+  xlab("E-I index") + ylab("Frequency")+theme(legend.position = "none")+
+  ggtitle("Friends, age: 60+") -> t6
+
+(t1 + t4)/(t2 + t5)/(t3 + t6)
+```
+
+```{r}
+as_tibble(summary(egor_IT_cow  ~ esp(0:26))) %>% 
+  mutate(esp = 0:26, country = "IT", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t1
+as_tibble(summary(egor_DE_cow  ~ esp(0:26))) %>% 
+  mutate(esp = 0:26, country = "DE", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t2
+as_tibble(summary(egor_FR_cow  ~ esp(0:26))) %>% 
+  mutate(esp = 0:26, country = "FR", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t3
+as_tibble(summary(egor_UK_cow  ~ esp(0:26))) %>% 
+  mutate(esp = 0:26, country = "UK", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t4
+
+t <- rbind(t1, t2, t3, t4)
+
+t %>% 
+  ggplot()+
+  geom_col(mapping = aes(x = esp, y = freq/sum(freq), fill = country), width = 0.8)+
+  xlab("ESP") + ylab("Relative frequency")
+```
+
+```{r}
+as_tibble(summary(egor_IT_fr  ~ esp(0:26))) %>% 
+  mutate(esp = 0:26, country = "IT", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t1
+as_tibble(summary(egor_DE_fr  ~ esp(0:26))) %>% 
+  mutate(esp = 0:26, country = "DE", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t2
+as_tibble(summary(egor_FR_fr  ~ esp(0:26))) %>% 
+  mutate(esp = 0:26, country = "FR", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t3
+as_tibble(summary(egor_UK_fr  ~ esp(0:26))) %>% 
+  mutate(esp = 0:26, country = "UK", freq = `scaled mean`, rel_freq = freq / sum(freq)) -> t4
+
+t <- rbind(t1, t2, t3, t4)
+
+t %>% 
+  ggplot()+
+  geom_col(mapping = aes(x = esp, y = freq/sum(freq), fill = country), width = 0.8)+
+  xlab("ESP") + ylab("Relative frequency")
+```
+
+```{r}
+survey_IT %>% 
+  ggplot()+
+  geom_bar(mapping = aes(x = sex, fill = as.factor(friend_closure), group = friend_closure), position = "dodge", width = 0.9)+
+  xlab("Sex") + ylab("Frequency")+
+  scale_fill_brewer(palette = "Blues", name = "friend_closure")+
+  guides(fill=guide_legend(title="Density levels"))
+
+survey_IT %>% 
+  ggplot()+
+  geom_bar(mapping = aes(x = M_education, fill = as.factor(friend_closure), group = friend_closure), position = "dodge", width = 0.9)+
+  xlab("Education") + ylab("Frequency")+
+  scale_fill_brewer(palette = "Blues", name = "friend_closure")+
+  guides(fill=guide_legend(title="Density levels"))
+```
+
+```{r}
+sh_it_cow <- alts_diversity_entropy(egor_IT_cow, "age_group")
+sh_it_fr <- alts_diversity_entropy(egor_IT_fr, "age_group")
+
+sh_it_cow %>% 
+  inner_join(sh_it_fr, by = ".egoID", suffix = c("_cow", "_fr")) %>% 
+  rename(coworkers = entropy_cow, friends = entropy_fr) %>% 
+  gather(key = "network", value = "entropy", -.egoID) %>% 
+  mutate(is_zero = as.numeric((entropy == 0)),
+         entropy_not0 = ifelse(entropy > 0, entropy, NA)) %>% 
+  ggplot()+
+  geom_density(mapping = aes(x = entropy, fill = network), alpha = 0.3, bins = 15)+
+  geom_boxplot(mapping = aes(x = entropy_not0, fill = network), alpha = 0.5)+ theme(legend.position = c(0.8, 0.8))+ 
+  theme(legend.title = element_blank())+ 
+  theme(legend.text=element_text(size=13))
+```
+
+```{r}
+sh_fr_cow <- alts_diversity_entropy(egor_FR_cow, "age_group")
+sh_fr_fr <- alts_diversity_entropy(egor_FR_fr, "age_group")
+sh_de_cow <- alts_diversity_entropy(egor_DE_cow, "age_group")
+sh_de_fr <- alts_diversity_entropy(egor_DE_fr, "age_group")
+sh_uk_cow <- alts_diversity_entropy(egor_UK_cow, "age_group")
+sh_uk_fr <- alts_diversity_entropy(egor_UK_fr, "age_group")
+```
+
+```{r}
+sh_de_cow %>% 
+  inner_join(sh_de_fr, by = ".egoID", suffix = c("_cow", "_fr")) %>% 
+  rename(coworkers = entropy_cow, friends = entropy_fr) %>% 
+  gather(key = "network", value = "entropy", -.egoID) %>% 
+  mutate(is_zero = as.numeric((entropy == 0)),
+         entropy_not0 = ifelse(entropy > 0, entropy, NA)) %>% 
+  ggplot()+
+  geom_density(mapping = aes(x = entropy, fill = network), alpha = 0.3, bins = 15)+
+  geom_boxplot(mapping = aes(x = entropy_not0, fill = network), alpha = 0.5)+ 
+  theme(legend.position = "none") +
+  ggtitle("Germany") -> t1
+
+sh_fr_cow %>% 
+  inner_join(sh_fr_fr, by = ".egoID", suffix = c("_cow", "_fr")) %>% 
+  rename(coworkers = entropy_cow, friends = entropy_fr) %>% 
+  gather(key = "network", value = "entropy", -.egoID) %>% 
+  mutate(is_zero = as.numeric((entropy == 0)),
+         entropy_not0 = ifelse(entropy > 0, entropy, NA)) %>% 
+  ggplot()+
+  geom_density(mapping = aes(x = entropy, fill = network), alpha = 0.3, bins = 15)+
+  geom_boxplot(mapping = aes(x = entropy_not0, fill = network), alpha = 0.5)+ theme(legend.position = c(0.8, 0.8))+ 
+  theme(legend.title = element_blank())+ 
+  theme(legend.text=element_text(size=13))+
+  ggtitle("France") -> t2
+
+sh_it_cow %>% 
+  inner_join(sh_it_fr, by = ".egoID", suffix = c("_cow", "_fr")) %>% 
+  rename(coworkers = entropy_cow, friends = entropy_fr) %>% 
+  gather(key = "network", value = "entropy", -.egoID) %>% 
+  mutate(is_zero = as.numeric((entropy == 0)),
+         entropy_not0 = ifelse(entropy > 0, entropy, NA)) %>% 
+  ggplot()+
+  geom_density(mapping = aes(x = entropy, fill = network), alpha = 0.3, bins = 15)+
+  geom_boxplot(mapping = aes(x = entropy_not0, fill = network), alpha = 0.5)+ 
+  theme(legend.position = "none")+
+  ggtitle("Italy") -> t3
+
+sh_uk_cow %>% 
+  inner_join(sh_uk_fr, by = ".egoID", suffix = c("_cow", "_fr")) %>% 
+  rename(coworkers = entropy_cow, friends = entropy_fr) %>% 
+  gather(key = "network", value = "entropy", -.egoID) %>% 
+  mutate(is_zero = as.numeric((entropy == 0)),
+         entropy_not0 = ifelse(entropy > 0, entropy, NA)) %>% 
+  ggplot()+
+  geom_density(mapping = aes(x = entropy, fill = network), alpha = 0.3, bins = 15)+
+  geom_boxplot(mapping = aes(x = entropy_not0, fill = network), alpha = 0.5)+ 
+  theme(legend.position = "none") +
+  ggtitle("UK") -> t4
+
+(t1 + t2) / (t3 + t4)
+```
+
+```{r}
+mm_de_cow <- mixingmatrix(egor_DE_cow, "age_group")
+mm_fr_cow <- mixingmatrix(egor_FR_cow, "age_group")
+mm_it_cow <- mixingmatrix(egor_IT_cow, "age_group")
+mm_uk_cow <- mixingmatrix(egor_UK_cow, "age_group")
+
+mm_de_fr <- mixingmatrix(egor_DE_fr, "age_group")
+mm_fr_fr <- mixingmatrix(egor_FR_fr, "age_group")
+mm_it_fr <- mixingmatrix(egor_IT_fr, "age_group")
+mm_uk_fr <- mixingmatrix(egor_UK_fr, "age_group")
+
+mm_it_fr <- matrix(data = mm_it_fr, nrow = 3, byrow = F, dimnames = list(c("18-29", "30-59", "60+"),c("18-29", "30-59", "60+")))
+mm_it_fr
+```
