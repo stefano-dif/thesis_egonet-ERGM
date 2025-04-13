@@ -824,24 +824,15 @@ ggplot(combined_data, aes(x = distance, fill = network_type)) +
 ```
 
 ```{r}
-tibble(age = get.vertex.attribute(g3, "age_group"),
-      degree = degree(g3)) %>% 
-  count(age, degree) %>% 
-  mutate(freq = n/sum(n))%>% 
-  ggplot()+
-  geom_col(mapping = aes(x = degree, y = freq, fill = age), position = "fill", width = 0.8)+
-  xlab("Degree") + ylab("Relative frequency")+
-  xlim(0, 30)
-```
-
-```{r}
-degreedist(egor_IT_fr, by = "age_group", freq = T) %>% 
+degreedist(egor_IT_fr, by = "M_income", freq = T) %>% 
   as_tibble() %>% 
-  mutate(degree = as.numeric(degree), Age = age_group) %>% 
+  mutate(degree = as.numeric(degree), Income = M_income) %>% 
   uncount(weights = n) %>% 
   ggplot()+
-  geom_boxplot(mapping = aes(x = Age, y = degree), alpha = 1)+
-  geom_boxplot(data = tibble(Age = get.vertex.attribute(g3, "age_group"),
-      degree = degree(g3)), aes(x = Age, y = degree, color = Age), alpha = 0.5)+
-  xlab("Age") + ylab("Degree")
+  geom_boxplot(mapping = aes(x = Income, y = degree), alpha = 1)+
+  geom_boxplot(data = tibble(Income = get.vertex.attribute(g3, "M_income"),
+      degree = degree(g3)), aes(x = Income, y = degree, color = Income), alpha = 0.5)+
+  xlab("Income level") + ylab("Degree")+
+  coord_flip()+
+  theme(legend.position = "none")
 ```
