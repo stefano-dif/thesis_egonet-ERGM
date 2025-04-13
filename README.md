@@ -19,7 +19,7 @@ renv::restore()
 
 ```data_analysis.qmd```: This script provides an exploratory analysis of the egocentric data.
 
-```[to add].R```: This script fits Exponential Random Graph Models (ERGMs) to the egocentric data and computes GoF measures, by comparing the degree distributions and edgewise shared partners (ESP) of the simulated networks with the data.
+```final_ERGMs.qmd```: This script fits Exponential Random Graph Models (ERGMs) to the egocentric data and computes GoF measures, by comparing the degree distributions and edgewise shared partners (ESP) of the simulated networks with the data.
 
 ```[to add].R```: This script evaluates the global metrics of the reconstructed networks against benchmark reconstructions (ER and AB).
 
