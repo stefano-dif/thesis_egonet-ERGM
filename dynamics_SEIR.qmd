@@ -1,0 +1,334 @@
+---
+title: "epinet"
+format: html
+editor: visual
+---
+
+```{r}
+#source("simulations.R")
+library(epinet)
+library(purrr)
+library(furrr)
+```
+
+### Coworkers SEIR simulations
+
+```{r}
+y1 <- as_edgelist(er_list_cow_ig_lc[[1]], names = TRUE)
+y2 <- as_edgelist(ba_list_cow_ig_lc[[1]], names = TRUE)
+y3 <- as_edgelist(ergm2_list_cow_ig_lc[[1]], names = TRUE)
+```
+
+```{r}
+betas <- c(0.2, 0.3, 0.4, 0.5, 0.6)
+
+avge <- c(3, 4, 5)
+avgi <- c(5, 6, 7)
+v <- 0.5
+#variances at 0.5 --> avge = ke*thetae, vare = ke*thetae^2
+kes <- (avge**2)/v
+kis <- (avgi**2)/v
+tes <- v/avge
+tis <- v/avgi
+
+r1_list <- list()
+r2_list <- list()
+r3_list <- list()
+
+for (bet in betas){
+  for (ie in 1:length(avge)){
+    for (ii in 1:length(avgi)){
+      
+      c <- paste(as.character(bet), as.character(avge[ie]), as.character(avgi[ii]))
+      
+      ke <- kes[ie]
+      ki <- kis[ii]
+      thetae <- tes[ie]
+      thetai <- tis[ii]
+      
+      r1 <- SEIR.simulator(M = y1, N = 10000, beta = bet, 
+                     ki = ki, thetai = thetai, 
+                     ke = ke, thetae = thetae,
+                     latencydist = "gamma")
+      r1_list[[c]] <- r1
+      
+      r2 <- SEIR.simulator(M = y2, N = 10000, beta = bet, 
+                     ki = ki, thetai = thetai, 
+                     ke = ke, thetae = thetae,
+                     latencydist = "gamma")
+      r2_list[[c]] <- r2
+      
+      
+      r3 <- SEIR.simulator(M = y3, N = 10000, beta = bet, 
+                     ki = ki, thetai = thetai, 
+                     ke = ke, thetae = thetae,
+                     latencydist = "gamma")
+      
+      r3_list[[c]] <- r3
+      
+      cat("Done:", c, "\n")
+    }
+  }
+}
+```
+
+```{r}
+purrr::map(r1_list, class)
+summary(r1_list[[1]])
+```
+
+```{r}
+r1_list_tb <- purrr::map(r1_list, as_tibble)
+
+r2_list_tb <- purrr::map(r2_list, as_tibble)
+
+r3_list_tb <- purrr::map(r3_list, as_tibble)
+```
+
+```{r}
+r1_df <- imap_dfr(r1_list_tb, ~ {
+  params <- strsplit(.y, " ")[[1]]
+  .x %>%
+    mutate(Beta = as.numeric(params[1]), 
+           Incubation = as.numeric(params[2]), 
+           Recovery = as.numeric(params[3]))
+})
+
+r2_df <- imap_dfr(r2_list_tb, ~ {
+  params <- strsplit(.y, " ")[[1]]
+  .x %>%
+    mutate(Beta = as.numeric(params[1]), 
+           Incubation = as.numeric(params[2]), 
+           Recovery = as.numeric(params[3]))
+})
+
+r3_df <- imap_dfr(r3_list_tb, ~ {
+  params <- strsplit(.y, " ")[[1]]
+  .x %>%
+    mutate(Beta = as.numeric(params[1]), 
+           Incubation = as.numeric(params[2]), 
+           Recovery = as.numeric(params[3]))
+})
+```
+
+```{r}
+plan(multisession)  # Use multiple cores
+```
+
+```{r}
+correct_transform <- function(tbl, name) {
+  params <- as.numeric(strsplit(name, " ")[[1]])  # Extract Beta, Incubation, Recovery from the name
+  beta <- params[1]
+  incubation <- params[2]
+  recovery <- params[3]
+  
+  # Get all unique times
+  unique_times <- sort(unique(c(tbl$Etime, tbl$Itime, tbl$Rtime)))
+  
+  # Create a data frame with all times and initialize counts
+  df_corrected <- tibble(
+    Beta = beta,
+    Incubation = incubation,
+    Recovery = recovery,
+    time = unique_times
+  ) %>%
+    rowwise() %>%
+    mutate(
+      S = sum(tbl$Etime > time, na.rm = TRUE),  # Nodes that have not yet moved to E
+      E = sum(tbl$Etime <= time & tbl$Itime > time, na.rm = TRUE),  # Nodes in E but not I
+      I = sum(tbl$Itime <= time & tbl$Rtime > time, na.rm = TRUE),  # Nodes in I but not R
+      R = sum(tbl$Rtime <= time, na.rm = TRUE)  # Nodes that have reached R
+    ) %>%
+    ungroup()
+  
+  return(df_corrected)
+}
+
+t1_df <- future_imap_dfr(r1_list_tb, correct_transform, .progress = TRUE)
+
+t2_df <- future_imap_dfr(r2_list_tb, correct_transform, .progress = TRUE)
+
+t3_df <- future_imap_dfr(r3_list_tb, correct_transform, .progress = TRUE)
+```
+
+```{r}
+t1_df_long <- t1_df %>%
+  pivot_longer(cols = c(S, E, I, R), names_to = "State", values_to = "Count")
+
+t2_df_long <- t2_df %>%
+  pivot_longer(cols = c(S, E, I, R), names_to = "State", values_to = "Count")
+
+t3_df_long <- t3_df %>%
+  pivot_longer(cols = c(S, E, I, R), names_to = "State", values_to = "Count")
+```
+
+```{r}
+ggplot(t1_df_long, aes(x = time, y = Count, color = State)) +
+  geom_line(size = 1) +
+  facet_grid(Beta ~ Incubation + Recovery) +
+  scale_color_manual(values = c("S" = "blue", "E" = "orange", "I" = "red", "R" = "green")) + 
+  labs(title = "SEIR Evolution Over Time (ER)",
+       x = "Time",
+       y = "Number of Nodes",
+       color = "State") +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+ggplot(t2_df_long, aes(x = time, y = Count, color = State)) +
+  geom_line(size = 1) +
+  facet_grid(Beta ~ Incubation + Recovery) +
+  scale_color_manual(values = c("S" = "blue", "E" = "orange", "I" = "red", "R" = "green")) + 
+  labs(title = "SEIR Evolution Over Time (BA)",
+       x = "Time",
+       y = "Number of Nodes",
+       color = "State") +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+ggplot(t3_df_long, aes(x = time, y = Count, color = State)) +
+  geom_line(size = 1) +
+  facet_grid(Beta ~ Incubation + Recovery) + 
+  scale_color_manual(values = c("S" = "blue", "E" = "orange", "I" = "red", "R" = "green")) + 
+  labs(title = "SEIR Evolution Over Time (ERGM)",
+       x = "Time",
+       y = "Number of Nodes",
+       color = "State") +
+  theme_minimal() +
+  theme(legend.position = "top")
+```
+
+```{r}
+t1_df_long$Network <- "ER"
+t2_df_long$Network <- "BA"
+t3_df_long$Network <- "ERGM"
+
+# Merge the dataframes
+t_combined <- rbind(t1_df_long, t2_df_long, t3_df_long)
+```
+
+```{r}
+#final number of susceptibles
+
+t_combined %>% 
+  group_by(Network, Beta, Incubation, Recovery) %>% 
+  filter(time == max(time)) %>% 
+  filter(State == "S") %>% 
+  select(Count) %>% 
+  ggplot(aes(x = Beta, y = Count))+
+  geom_line(size = 1) +  # Line plot
+  facet_grid(Incubation ~ Recovery) + 
+  labs(title = "Final number of Susceptibles",
+       x = "Beta",
+       y = "Susceptibles") +
+  theme_minimal() +
+  theme(legend.position = "top")
+  
+t_combined %>% 
+  group_by(Network, Beta, Incubation, Recovery) %>% 
+  filter(time == max(time)) %>% 
+  filter(State == "S") %>% 
+  select(Count)
+```
+
+```{r}
+t_combined$State <- factor(t_combined$State, levels = c("S", "E", "I", "R"))
+```
+
+```{r}
+t_combined %>%
+  filter(Beta == 0.2) %>% 
+  ggplot(aes(x = time, y = Count, color = State, linetype = Network)) +
+  geom_line(size = 1) +
+  facet_grid(State ~ Incubation + Recovery, scales = "free_y") + # Facet by State, Incubation, and Recovery
+  labs(title = "States over Time by Network", 
+       x = "Time", 
+       y = "Count") +
+  scale_color_manual(values = c("S" = "blue", "E" = "green", "I" = "orange", "R" = "red")) + 
+  scale_linetype_manual(values = c("ER" = "solid", "BA" = "dotted", "ERGM" = "twodash")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+t_combined %>%
+  filter(Beta == 0.2) %>% 
+  ggplot(aes(x = time, y = Count, linetype = State, color = Network)) +
+  geom_line(size = 1) +
+  facet_grid(State ~ Incubation + Recovery, scales = "free_y") + # Facet by State, Incubation, and Recovery
+  labs(x = "Time", 
+       y = "Count") +
+  scale_color_manual(values = c("ER" = "blue", "BA" = "green", "ERGM" = "red")) + 
+  scale_linetype_manual(values = c("S" = "solid", "E" = "dotted", "I" = "dashed", "R" = "twodash")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+t_combined %>%
+  filter(Beta == 0.3) %>% 
+  ggplot(aes(x = time, y = Count, linetype = State, color = Network)) +
+  geom_line(size = 1) +
+  facet_grid(State ~ Incubation + Recovery, scales = "free_y") + # Facet by State, Incubation, and Recovery
+  labs(x = "Time", 
+       y = "Count") +
+  scale_color_manual(values = c("ER" = "blue", "BA" = "green", "ERGM" = "red")) + 
+  scale_linetype_manual(values = c("S" = "solid", "E" = "dotted", "I" = "dashed", "R" = "twodash")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+t_combined %>%
+  filter(Beta == 0.4) %>% 
+  ggplot(aes(x = time, y = Count, linetype = State, color = Network)) +
+  geom_line(size = 1) +
+  facet_grid(State ~ Incubation + Recovery, scales = "free_y") + # Facet by State, Incubation, and Recovery
+  labs(x = "Time", 
+       y = "Count") +
+  scale_color_manual(values = c("ER" = "blue", "BA" = "green", "ERGM" = "red")) + 
+  scale_linetype_manual(values = c("S" = "solid", "E" = "dotted", "I" = "dashed", "R" = "twodash")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+t_combined %>%
+  filter(Beta == 0.5) %>% 
+  ggplot(aes(x = time, y = Count, linetype = State, color = Network)) +
+  geom_line(size = 1) +
+  facet_grid(State ~ Incubation + Recovery, scales = "free_y") + # Facet by State, Incubation, and Recovery
+  labs(x = "Time", 
+       y = "Count") +
+  scale_color_manual(values = c("ER" = "blue", "BA" = "green", "ERGM" = "red")) + 
+  scale_linetype_manual(values = c("S" = "solid", "E" = "dotted", "I" = "dashed", "R" = "twodash")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+t_combined %>%
+  filter(Beta == 0.6) %>% 
+  ggplot(aes(x = time, y = Count, linetype = State, color = Network)) +
+  geom_line(size = 1) +
+  facet_grid(State ~ Incubation + Recovery, scales = "free_y") + # Facet by State, Incubation, and Recovery
+  labs(x = "Time", 
+       y = "Count") +
+  scale_color_manual(values = c("ER" = "blue", "BA" = "green", "ERGM" = "red")) + 
+  scale_linetype_manual(values = c("S" = "solid", "E" = "dotted", "I" = "dashed", "R" = "twodash")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+t_combined %>%
+  filter(Beta == 0.2) %>% 
+  ggplot(aes(x = time, y = Count, color = State, linetype = Network)) +
+  geom_line(size = 1) +
+  facet_grid(Incubation ~ Recovery, scales = "free_y") + # Facet by Incubation and Recovery
+  labs(x = "Time", 
+       y = "Count") +
+  scale_color_manual(values = c("S" = "blue", "E" = "green", "I" = "orange", "R" = "red")) + 
+  scale_linetype_manual(values = c("ER" = "solid", "BA" = "dotted", "ERGM" = "twodash")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+```
