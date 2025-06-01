@@ -17,7 +17,7 @@ renv::restore()
 
 ```data_preparation.R```: This script performs preprocessing steps on the data (e.g., smoothing degree distributions) and creates the _egor_ objects that are going to be used in the following scripts.
 
-```[to add].R```: This script provides an exploratory analysis of the egocentric data.
+```data_analysis.qmd```: This script provides an exploratory analysis of the egocentric data.
 
 ```[to add].R```: This script fits Exponential Random Graph Models (ERGMs) to the egocentric data and computes GoF measures, by comparing the degree distributions and edgewise shared partners (ESP) of the simulated networks with the data.
 
