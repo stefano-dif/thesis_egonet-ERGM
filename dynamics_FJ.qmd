@@ -1,0 +1,213 @@
+---
+title: "dynamics_FJ"
+format: html
+editor: visual
+---
+
+```{r}
+#source("simulations.R")
+```
+
+### Model
+
+```{r}
+simulate_friedkin_johnsen <- function(net, bet, opinions = NULL, max_iter = 150, tol = 1e-6) {
+
+  if (is.null(opinions)){
+    opinions <- sample(c(0, 1), size = network.size(net), prob = c(0.5, 0.5))
+  }else{
+    opinions <- rbeta(network.size(net), shape1 = opinions[1], shape2 = opinions[2])
+  }
+  
+  start_opinions <- opinions
+
+  A <- as_adjacency_matrix(asIgraph(net), sparse = F)
+  row_sums <- rowSums(A)
+  
+  it <- 0
+  for (iter in 1:max_iter) {
+    it <- it + 1
+    #cat("iter", it)
+    
+    new_opinions <- (1 - bet) * start_opinions + bet * (A %*% opinions)
+    new_opinions <- new_opinions/(1 - bet + bet*row_sums)
+    
+    if (max(abs(new_opinions - opinions)) < tol) {
+      break
+    }
+    
+    opinions <- new_opinions
+
+  }
+  
+  return(list(opinions, it))
+}
+```
+
+### Coworkers Friedkin-Johnsen simulations
+
+```{r}
+set.seed(1234)
+betas <- seq(0.05, 1, 0.05)
+ops_1 <- c(0.1, 0.5, 1)
+ops_2 <- c(0.1, 0.5, 1)
+res1 <- tibble()
+res2 <- tibble()
+res3 <- tibble()
+it1 <- c()
+it2 <- c()
+it3 <- c()
+
+n1 <- er_list_cow_lc[[1]]
+n2 <- ba_list_cow_lc[[1]]
+n3 <- ergm2_list_cow_lc[[1]]
+
+for (bet in betas){
+  for (op1 in ops_1){
+    for (op2 in ops_2){
+      
+      c <- paste(as.character(bet), as.character(op1), as.character(op2)) 
+      opinions <- c(op1, op2)
+        
+      t1 <- simulate_friedkin_johnsen(n1, bet, opinions)
+      res1[1:length(t1[[1]]), c] <- t1[[1]]
+      it1 <- c(it1, t1[[2]])
+      
+      t2 <- simulate_friedkin_johnsen(n2, bet, opinions)
+      res2[1:length(t2[[1]]), c] <- t2[[1]]
+      it2 <- c(it2, t2[[2]])
+      
+      t3 <- simulate_friedkin_johnsen(n3, bet, opinions)
+      res3[1:length(t3[[1]]), c] <- t3[[1]]
+      it3 <- c(it3, t3[[2]])
+      
+      cat("Done:", c, "\n")
+      
+    }
+  }
+}
+```
+
+```{r}
+res1 %>% 
+  pivot_longer(cols = everything(), names_to = "params", values_to = "value") %>% 
+  separate(col = params, into = c("Beta", "shape_1", "shape_2"), sep = " ", convert = TRUE) -> df1
+
+res2 %>% 
+  pivot_longer(cols = everything(), names_to = "params", values_to = "value") %>% 
+  separate(col = params, into = c("Beta", "shape_1", "shape_2"), sep = " ", convert = TRUE) -> df2
+
+res3 %>% 
+  pivot_longer(cols = everything(), names_to = "params", values_to = "value") %>% 
+  separate(col = params, into = c("Beta", "shape_1", "shape_2"), sep = " ", convert = TRUE) -> df3
+
+df_combined <- bind_rows(
+  df1 %>% mutate(network = "ER"),
+  df2 %>% mutate(network = "BA"),
+  df3 %>% mutate(network = "ERGM")
+)
+
+
+df1 %>% 
+  group_by(Beta, shape_1, shape_2) %>% 
+  summarise(mean_op = mean(value), sd_op = sd(value)) -> s1
+
+df2 %>% 
+  group_by(Beta, shape_1, shape_2) %>% 
+  summarise(mean_op = mean(value), sd_op = sd(value)) -> s2
+
+df3 %>% 
+  group_by(Beta, shape_1, shape_2) %>% 
+  summarise(mean_op = mean(value), sd_op = sd(value)) -> s3
+
+s_combined <- bind_rows(
+  s1 %>% mutate(network = "ER"),
+  s2 %>% mutate(network = "BA"),
+  s3 %>% mutate(network = "ERGM")
+)
+  
+```
+
+```{r}
+df1 %>% 
+  group_by(Beta, shape_1, shape_2) %>% 
+  summarise(m = max(value), mm = min(value)) %>% 
+  mutate(range = m - mm) %>%
+  select(-c(m, mm)) -> temp1
+
+df2 %>% 
+  group_by(Beta, shape_1, shape_2) %>% 
+  summarise(m = max(value), mm = min(value)) %>% 
+  mutate(range = m - mm) %>%
+  select(-c(m, mm)) -> temp2
+
+df3 %>% 
+  group_by(Beta, shape_1, shape_2) %>% 
+  summarise(m = max(value), mm = min(value)) %>% 
+  mutate(range = m - mm) %>%
+  select(-c(m, mm)) -> temp3
+
+temp_combined <- bind_rows(
+  temp1 %>% mutate(network = "ER"),
+  temp2 %>% mutate(network = "BA"),
+  temp3 %>% mutate(network = "ERGM")
+)
+
+temp_combined %>% 
+  ggplot()+
+  geom_line(aes(x = Beta, y = range, color = network))+
+  facet_wrap(~ shape_1 + shape_2)+
+  ylab("Opinions Range") + xlab("Beta")
+```
+
+```{r}
+df_combined %>% 
+  filter(Beta == 0.1) %>% 
+ggplot(aes(x = value, fill = network)) +
+  geom_histogram(color = "black", alpha = 1, position = "fill") +
+  facet_wrap(~ shape_1 + shape_2) +  # Facet by parameter combination
+  labs(x = "Opinion", y = "Count") +
+  theme_minimal()+
+  theme(legend.position = "none")
+
+df_combined %>% 
+  filter(Beta == 0.9) %>% 
+ggplot(aes(x = value, fill = network)) +
+  geom_histogram(color = "black", alpha = 1, position = "fill") +
+  facet_wrap(~ shape_1 + shape_2) +  # Facet by parameter combination
+  labs(x = "Opinion", y = "Count") +
+  theme_minimal()+
+  theme(legend.position = "none")
+
+df_combined %>% 
+  filter(Beta == 0.5) %>% 
+ggplot(aes(x = value, fill = network)) +
+  geom_histogram(color = "black", alpha = 1, position = "fill") +
+  facet_wrap(~ shape_1 + shape_2) +  # Facet by parameter combination
+  labs(x = "Opinion", y = "Count") +
+  theme_minimal()
+
+```
+
+```{r}
+df_it1 <- tibble(params = names(res1), Iterations = it1) %>%
+  separate(params, into = c("Beta", "shape_1", "shape_2"), sep = " ", convert = TRUE) %>% 
+  mutate(network = "ER")
+
+df_it2 <- tibble(params = names(res2), Iterations = it2) %>%
+  separate(params, into = c("Beta", "shape_1", "shape_2"), sep = " ", convert = TRUE) %>% 
+  mutate(network = "BA")
+
+df_it3 <- tibble(params = names(res3), Iterations = it3) %>%
+  separate(params, into = c("Beta", "shape_1", "shape_2"), sep = " ", convert = TRUE) %>% 
+  mutate(network = "ERGM")
+
+df_its <- bind_rows(df_it1,
+                    df_it2,
+                    df_it3)
+
+df_its %>% 
+  ggplot()+
+  geom_line(aes(x = Beta, y = Iterations, color = network))+
+  facet_wrap(~ shape_1 + shape_2)
+```
