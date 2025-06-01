@@ -9,3 +9,7 @@ To use the code in this repository, you need to set up the environment using the
 ```bash
 # Restore the R environment based on renv.lock
 renv::restore()
+
+## Acknowledgments
+- ergm.ego: This package was used for fitting Exponential Random Graph Models (ERGMs) to the egocentric data.
+- epinet: This package was used for simulating epidemic spreading processes (SEIR model) on the reconstructed networks.
