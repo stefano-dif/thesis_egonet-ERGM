@@ -21,7 +21,7 @@ renv::restore()
 
 ```final_ERGMs.qmd```: This script fits Exponential Random Graph Models (ERGMs) to the egocentric data and computes GoF measures, by comparing the degree distributions and edgewise shared partners (ESP) of the simulated networks with the data.
 
-```[to add].R```: This script evaluates the global metrics of the reconstructed networks against benchmark reconstructions (ER and AB).
+```metrics_evaluation.qmd```: This script evaluates the global metrics of the reconstructed networks against benchmark reconstructions (ER and AB).
 
 ```[to add].R```: This script simulates the dynamics of two spreading processes: (1) the SEIR epidemic model and (2) the Friedkin–Johnsen opinion dynamics model. These processes are simulated on the reconstructed networks to study the effects of network structure on dynamic behaviors and compared against the dynamics on benchmark reconstructions (ER and AB).
 
