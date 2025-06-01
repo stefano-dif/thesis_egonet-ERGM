@@ -1,0 +1,157 @@
+---
+title: "final_ERGMs"
+format: html
+editor: visual
+---
+
+```{r}
+#source("data_preparation.R")
+```
+
+### Friends (final) Model
+
+```{r}
+m_108_IT_fr <- ergm.ego(egor_IT_fr ~ edges +
+                              gwdegree(decay = 1, fixed = T) +
+                              gwesp(decay = 0.8, fixed = T) +
+                              nodefactor("sex") +
+                              nodefactor("age_group") +                      
+                              nodematch("age_group", diff = T) +
+                              nodefactor("M_education") +                      
+                              nodefactor("M_income") +                      
+                              nodefactor("M_politics") +                      
+                              nodecov("cohabitant_num") +                      
+                              nodecov("noncohabitant_num"),
+                        constraints = ~ bd(maxout = 27),
+                        control = control.ergm.ego(ergm = control.ergm(
+                                MCMLE.maxit = 50,
+                                force.main = TRUE, 
+                                main.hessian = TRUE, 
+                                MCMC.samplesize = 2e+3,         
+                                parallel = 8,     
+                                MCMC.burnin = 2e+3, 
+                                MCMLE.density.guard = 100,
+                                MCMC.interval = 2e+3, 
+                                MCMC.runtime.traceplot = FALSE)), estimate = "MLE", verbose = 3)
+```
+
+```{r}
+summary(m_108_IT_fr)
+
+#mcmc.diagnostics(m_108_IT_fr, which = "plots")
+gofdeg_m1fr<- gof(m_108_IT_fr, GOF = "degree")
+plot(gofdeg_m1fr)
+check_KL_deg(gofdeg_m1fr)
+
+gofesp_m1fr <- gof(m_108_IT_fr, GOF = "espartners")
+plot(gofesp_m1fr)
+check_KL_esp(gofesp_m1fr)
+```
+
+```{r}
+restart_fr <- coef(m_108_IT_fr)
+```
+
+```{r}
+m2_108_IT_fr <- ergm.ego(egor_IT_fr ~ edges +
+                              gwdegree(decay = 1, fixed = T) +
+                              gwesp(decay = 0.8, fixed = T) +
+                              nodefactor("sex") +
+                              nodefactor("age_group") +                      
+                              nodematch("age_group", diff = T) +
+                              nodefactor("M_education") +                      
+                              nodefactor("M_income") +                      
+                              nodefactor("M_politics") +                      
+                              nodecov("cohabitant_num") +                      
+                              nodecov("noncohabitant_num"),
+                        control = control.ergm.ego(ergm = control.ergm(
+                                MCMLE.maxit = 5,
+                                force.main = TRUE, 
+                                main.hessian = TRUE, 
+                                MCMC.samplesize = 2e+3,         
+                                parallel = 8,     
+                                MCMC.burnin = 2e+3, 
+                                MCMLE.density.guard = 100,
+                                MCMC.interval = 2e+3, 
+                                MCMC.runtime.traceplot = FALSE,
+                                init = restart_fr)), estimate = "MLE", verbose = 3)
+```
+
+```{r}
+gofesp_m2fr <- gof(m2_108_IT_fr, GOF = "espartners")
+check_KL_esp(gofesp_m2fr)
+```
+
+### Coworkers (final) Model
+
+```{r}
+m_88_IT_cow <- ergm.ego(egor_IT_cow ~ edges +
+                              gwdegree(decay = 0.8, fixed = T) +
+                              gwesp(decay = 0.8, fixed = T) +
+                              nodefactor("sex") +
+                              nodefactor("age_group") +                      
+                              nodematch("age_group", diff = T) +
+                              nodefactor("M_education") +                      
+                              nodefactor("M_income") +                      
+                              nodefactor("M_politics") +                      
+                              nodecov("cohabitant_num") +                      
+                              nodecov("noncohabitant_num"),
+                        constraints = ~ bd(maxout = 27),
+                        control = control.ergm.ego(ergm = control.ergm(
+                                MCMLE.maxit = 50,
+                                force.main = TRUE, 
+                                main.hessian = TRUE, 
+                                MCMC.samplesize = 2e+3,         
+                                parallel = 8,     
+                                MCMC.burnin = 2e+3, 
+                                MCMLE.density.guard = 100,
+                                MCMC.interval = 2e+3, 
+                                MCMC.runtime.traceplot = FALSE)), estimate = "MLE", verbose = 3)
+```
+
+```{r}
+summary(m_88_IT_cow)
+
+#mcmc.diagnostics(m_108_IT_fr, which = "plots")
+gofdeg_m1cow<- gof(m_88_IT_cow, GOF = "degree")
+plot(gofdeg_m1cow)
+check_KL_deg(gofdeg_m1cow)
+
+gofesp_m1cow <- gof(m_88_IT_cow, GOF = "espartners")
+plot(gofesp_m1cow)
+check_KL_esp(gofesp_m1cow)
+```
+
+```{r}
+restart_cow <- coef(m_88_IT_cow)
+```
+
+```{r}
+m2_88_IT_cow <- ergm.ego(egor_IT_cow ~ edges +
+                              gwdegree(decay = 0.8, fixed = T) +
+                              gwesp(decay = 0.8, fixed = T) +
+                              nodefactor("sex") +
+                              nodefactor("age_group") +                      
+                              nodematch("age_group", diff = T) +
+                              nodefactor("M_education") +                      
+                              nodefactor("M_income") +                      
+                              nodefactor("M_politics") +                      
+                              nodecov("cohabitant_num") +                      
+                              nodecov("noncohabitant_num"),
+                        control = control.ergm.ego(ergm = control.ergm(
+                                MCMLE.maxit = 5,
+                                force.main = TRUE, 
+                                main.hessian = TRUE, 
+                                MCMC.samplesize = 2e+3,         
+                                parallel = 8,     
+                                MCMC.burnin = 2e+3, 
+                                MCMLE.density.guard = 100,
+                                MCMC.interval = 2e+3, 
+                                MCMC.runtime.traceplot = FALSE,
+                                init = restart_cow)), estimate = "MLE", verbose = 3)
+```
+
+```{r}
+gofesp_m2cow <- gof(m2_88_IT_cow, GOF = "espartners")
+check_KL_esp(gofesp_m2cow)
+```
