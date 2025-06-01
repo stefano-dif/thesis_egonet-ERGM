@@ -13,7 +13,7 @@ renv::restore()
 
 ## Script Descriptions
 
-data_preparation.R: This script performs preprocessing steps on the data (e.g., smoothing degree distributions) and creates the _egor_ objects that are going to be used in the following scripts.
+```data_preparation.R```: This script performs preprocessing steps on the data (e.g., smoothing degree distributions) and creates the _egor_ objects that are going to be used in the following scripts.
 
 .R: This script processes the raw egocentric data, performs preprocessing steps (e.g., smoothing degree distributions), and applies the Exponential Random Graph Model (ERGM) to reconstruct global network structures based on egocentric information.
 
