@@ -1,3 +1,5 @@
+#run 'final_ERGMs.qmd' to get the fitted ERGMs
+
 list_to_igraph <- function(l){
   res <- list()
   for (i in 1:length(l)){
