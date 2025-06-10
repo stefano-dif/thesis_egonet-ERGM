@@ -4,7 +4,7 @@ This repository contains the R code used in the thesis titled "From Egocentric N
 
 ## Setup
 
-To use the code in this repository, you need to set up the environment using the `renv` package. Once you have cloned the repository, follow these steps to restore the environment:
+To use the code in this repository, you need to set up the environment using the `renv` package. Once you have cloned the repository, restore the environment using:
 
 ```bash
 # Restore the R environment based on renv.lock
