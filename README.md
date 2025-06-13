@@ -2,7 +2,7 @@
 
 This repository contains the R code used in the thesis titled "From Egocentric Networks to Diffusion Processes: A Data-Driven Approach to Social Network Reconstruction".
 
-Supervisor: Alessia Melegaro
+Supervisor: Professor Alessia Melegaro, Bocconi University.
 
 The code implements various steps for network reconstruction and simulation of dynamical processes.
 
