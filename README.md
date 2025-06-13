@@ -1,6 +1,11 @@
-# Thesis Code: From Egocentric Networks to Diffusion Processes
+# Thesis Code: 'From Egocentric Networks to Diffusion Processes'
 
-This repository contains the R code used in the thesis titled "From Egocentric Networks to Diffusion Processes: A Data-Driven Approach to Social Network Reconstruction". The code implements various steps for network reconstruction and simulation of dynamical processes.
+This repository contains the R code used in the thesis titled "From Egocentric Networks to Diffusion Processes: A Data-Driven Approach to Social Network Reconstruction".
+
+Supervisor: Alessia Melegaro
+
+The code implements various steps for network reconstruction and simulation of dynamical processes.
+
 
 ## Setup
 
